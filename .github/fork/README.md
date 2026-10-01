@@ -16,4 +16,6 @@ Set repository secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `
 
 The build follows the upstream Java 21 / patched MetaCubeX Go 1.26 / NDK 29 / Gradle `assembleMetaRelease` recipe. The core is linked into `libclash.so`; a desktop CLI executable cannot replace it. App updates are downloaded from this fork's Releases page; CMFA has no built-in application updater to redirect.
 
+Source pinning does not promise byte-for-byte reproducibility: the inherited upstream build downloads current Geo databases and bundles the runner's current CA certificates. Release checksums identify the actual published files; `build-info.json` identifies the exact app and core source commits.
+
 `python3 .github/fork/prepare.py --self-test` checks the release version rewrite and its rejection cases. The initial CMFA v2.11.35 and mihomo v1.19.32 both use upstream core SHA `88dcbf7f1614a67c3b36b848ee3592dfa92ada36`; the custom core changes that SHA by applying the AnyTLS + REALITY patch. A local Android/arm64 cross-compilation of CMFA's Go wrapper packages was checked separately; full APK verification is performed by Actions.
