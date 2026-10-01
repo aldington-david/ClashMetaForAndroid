@@ -1,0 +1,123 @@
+diff --git a/.gitmodules b/.gitmodules
+index 4bbdf538..aebd0538 100644
+--- a/.gitmodules
++++ b/.gitmodules
+@@ -1,4 +1,4 @@
+ [submodule "clash-foss"]
+ 	path = core/src/foss/golang/clash
+-	url = https://github.com/MetaCubeX/mihomo
+-	branch = Alpha
++	url = https://github.com/aldington-david/mihomo
++	branch = anytls-reality
+diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
+index 9900007e..879e869a 100644
+--- a/app/src/main/AndroidManifest.xml
++++ b/app/src/main/AndroidManifest.xml
+@@ -89,15 +89,15 @@
+                 <data android:host="install-config"/>
+             </intent-filter>
+             <intent-filter>
+-                <action android:name="com.github.metacubex.clash.meta.action.START_CLASH" />
++                <action android:name="${applicationId}.action.START_CLASH" />
+                 <category android:name="android.intent.category.DEFAULT" />
+             </intent-filter>
+             <intent-filter>
+-                <action android:name="com.github.metacubex.clash.meta.action.STOP_CLASH" />
++                <action android:name="${applicationId}.action.STOP_CLASH" />
+                 <category android:name="android.intent.category.DEFAULT" />
+             </intent-filter>
+             <intent-filter>
+-                <action android:name="com.github.metacubex.clash.meta.action.TOGGLE_CLASH" />
++                <action android:name="${applicationId}.action.TOGGLE_CLASH" />
+                 <category android:name="android.intent.category.DEFAULT" />
+             </intent-filter>
+         </activity>
+diff --git a/build.gradle.kts b/build.gradle.kts
+index a42f07d5..12161089 100644
+--- a/build.gradle.kts
++++ b/build.gradle.kts
+@@ -47,7 +47,7 @@ subprojects {
+         defaultConfig {
+             if (isApp) {
+                 val customApplicationId = queryConfigProperty("custom.application.id") as? String?
+-                applicationId = customApplicationId.takeIf { it?.isNotBlank() == true } ?: "com.github.metacubex.clash"
++                applicationId = customApplicationId.takeIf { it?.isNotBlank() == true } ?: "com.github.aldingtondavid.cmfa"
+             }
+ 
+             project.name.let { name ->
+@@ -125,12 +125,9 @@ subprojects {
+ 
+                 buildConfigField("boolean", "PREMIUM", "Boolean.parseBoolean(\"false\")")
+ 
+-                resValue("string", "launch_name", "@string/launch_name_meta")
+-                resValue("string", "application_name", "@string/application_name_meta")
++                resValue("string", "launch_name", "CMFA AnyTLS REALITY")
++                resValue("string", "application_name", "CMFA AnyTLS REALITY")
+ 
+-                if (isApp && !removeSuffix) {
+-                    applicationIdSuffix = ".meta"
+-                }
+             }
+         }
+ 
+@@ -152,6 +149,7 @@ subprojects {
+                     }
+ 
+                     storeFile = rootProject.file("release.keystore")
++                    storeType = "PKCS12"
+                     storePassword = prop.getProperty("keystore.password")!!
+                     keyAlias = prop.getProperty("key.alias")!!
+                     keyPassword = prop.getProperty("key.password")!!
+@@ -163,7 +161,8 @@ subprojects {
+             named("release") {
+                 isMinifyEnabled = isApp
+                 isShrinkResources = isApp
+-                signingConfig = signingConfigs.findByName("release") ?: signingConfigs["debug"]
++                signingConfig = signingConfigs.findByName("release")
++                    ?: error("Release signing.properties is required; debug signing is forbidden")
+                 proguardFiles(
+                     getDefaultProguardFile("proguard-android-optimize.txt"),
+                     "proguard-rules.pro"
+diff --git a/core/src/main/cpp/CMakeLists.txt b/core/src/main/cpp/CMakeLists.txt
+index 82f2a82d..ee712d08 100644
+--- a/core/src/main/cpp/CMakeLists.txt
++++ b/core/src/main/cpp/CMakeLists.txt
+@@ -16,7 +16,7 @@ message(STATUS "git hash= ${COMMIT_HASH}")
+ 
+ # 获取分支名称
+ execute_process(
+-  COMMAND git submodule foreach git branch -r --contains ${COMMIT_HASH}
++  COMMAND git submodule foreach git describe --tags --always
+   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
+   OUTPUT_VARIABLE CURRENT_BRANCH
+ )
+diff --git a/design/src/main/res/values-ru/strings.xml b/design/src/main/res/values-ru/strings.xml
+index 4f680de2..81c6ba80 100644
+--- a/design/src/main/res/values-ru/strings.xml
++++ b/design/src/main/res/values-ru/strings.xml
+@@ -215,8 +215,8 @@
+     <string name="google_play">Google Play</string>
+     <string name="clash_meta_core">Ядро Clash Meta</string>
+     <string name="clash_wiki_url" translatable="false">https://github.com/Dreamacro/clash/wiki</string>
+-    <string name="meta_github_url" translatable="false">https://github.com/MetaCubeX/ClashMetaForAndroid</string>
+-    <string name="clash_meta_core_url" translatable="false">https://github.com/MetaCubeX/Clash.Meta</string>
++    <string name="meta_github_url" translatable="false">https://github.com/aldington-david/ClashMetaForAndroid</string>
++    <string name="clash_meta_core_url" translatable="false">https://github.com/aldington-david/mihomo</string>
+ 
+     <string name="tips_properties"><![CDATA[Принимается только <strong>конфиг Clash</strong> (включая <strong>Прокси</strong>/<strong>Правила</strong>)]]></string>
+     <string name="tips_help"><![CDATA[Clash Meta для Android — <strong>бесплатен</strong> и мы <strong>НЕ</strong> предоставляем по нему поддержку]]></string>
+diff --git a/design/src/main/res/values/strings.xml b/design/src/main/res/values/strings.xml
+index 4e43d3fd..e4e26af1 100644
+--- a/design/src/main/res/values/strings.xml
++++ b/design/src/main/res/values/strings.xml
+@@ -235,8 +235,8 @@
+     <string name="google_play">Google Play</string>
+     <string name="clash_meta_core">Clash Meta Core</string>
+     <string name="clash_wiki_url" translatable="false">https://github.com/Dreamacro/clash/wiki</string>
+-    <string name="meta_github_url" translatable="false">https://github.com/MetaCubeX/ClashMetaForAndroid</string>
+-    <string name="clash_meta_core_url" translatable="false">https://github.com/MetaCubeX/Clash.Meta</string>
++    <string name="meta_github_url" translatable="false">https://github.com/aldington-david/ClashMetaForAndroid</string>
++    <string name="clash_meta_core_url" translatable="false">https://github.com/aldington-david/mihomo</string>
+ 
+     <string name="tips_properties"><![CDATA[Accept Only <strong>Clash Config</strong>(including <strong>Proxy</strong>/<strong>Rules</strong>)]]></string>
+     <string name="tips_help"><![CDATA[Clash Meta for Android is a <strong>freeware</strong> and we do <strong>NOT</strong> provide any service for it]]></string>

@@ -16,7 +16,7 @@ message(STATUS "git hash= ${COMMIT_HASH}")
 
 # 获取分支名称
 execute_process(
-  COMMAND git submodule foreach git branch -r --contains ${COMMIT_HASH}
+  COMMAND git submodule foreach git describe --tags --always
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
   OUTPUT_VARIABLE CURRENT_BRANCH
 )

@@ -47,7 +47,7 @@ subprojects {
         defaultConfig {
             if (isApp) {
                 val customApplicationId = queryConfigProperty("custom.application.id") as? String?
-                applicationId = customApplicationId.takeIf { it?.isNotBlank() == true } ?: "com.github.metacubex.clash"
+                applicationId = customApplicationId.takeIf { it?.isNotBlank() == true } ?: "com.github.aldingtondavid.cmfa"
             }
 
             project.name.let { name ->
@@ -58,8 +58,8 @@ subprojects {
             minSdk = 21
             targetSdk = 35
 
-            versionName = "2.11.34"
-            versionCode = 211034
+            versionName = "2.11.35"
+            versionCode = 1000000002
 
             resValue("string", "release_name", "v$versionName")
             resValue("integer", "release_code", "$versionCode")
@@ -125,12 +125,9 @@ subprojects {
 
                 buildConfigField("boolean", "PREMIUM", "Boolean.parseBoolean(\"false\")")
 
-                resValue("string", "launch_name", "@string/launch_name_meta")
-                resValue("string", "application_name", "@string/application_name_meta")
+                resValue("string", "launch_name", "CMFA AnyTLS REALITY")
+                resValue("string", "application_name", "CMFA AnyTLS REALITY")
 
-                if (isApp && !removeSuffix) {
-                    applicationIdSuffix = ".meta"
-                }
             }
         }
 
@@ -152,6 +149,7 @@ subprojects {
                     }
 
                     storeFile = rootProject.file("release.keystore")
+                    storeType = "PKCS12"
                     storePassword = prop.getProperty("keystore.password")!!
                     keyAlias = prop.getProperty("key.alias")!!
                     keyPassword = prop.getProperty("key.password")!!
@@ -163,7 +161,8 @@ subprojects {
             named("release") {
                 isMinifyEnabled = isApp
                 isShrinkResources = isApp
-                signingConfig = signingConfigs.findByName("release") ?: signingConfigs["debug"]
+                signingConfig = signingConfigs.findByName("release")
+                    ?: error("Release signing.properties is required; debug signing is forbidden")
                 proguardFiles(
                     getDefaultProguardFile("proguard-android-optimize.txt"),
                     "proguard-rules.pro"

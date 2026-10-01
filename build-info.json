@@ -1,0 +1,12 @@
+{
+  "upstream_repository": "MetaCubeX/ClashMetaForAndroid",
+  "upstream_tag": "v2.11.35",
+  "upstream_sha": "a55827bfdd79f69ded8cf75c90293d2b7cb7e5a1",
+  "core_repository": "aldington-david/mihomo",
+  "core_tag": "v1.19.32",
+  "core_sha": "245336d763ea5dd4f2062681e44c53f9fce2f8dc",
+  "release_tag": "v2.11.35-anytls-v1.19.32",
+  "application_id": "com.github.aldingtondavid.cmfa",
+  "version_code": 1000000002,
+  "controller_sha": "a1c1d8a4d33c3bd87321a274827cf8a746a349e8"
+}
