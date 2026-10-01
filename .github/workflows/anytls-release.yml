@@ -1,0 +1,185 @@
+name: AnyTLS REALITY release
+
+on:
+  push:
+    branches: [anytls-reality]
+    paths: ['.github/fork/**', '.github/workflows/anytls-release.yml']
+  schedule:
+    - cron: '37 * * * *'
+  workflow_dispatch:
+    inputs:
+      upstream_tag:
+        description: 'Optional published upstream tag; empty selects latest stable'
+        type: string
+      core_tag:
+        description: 'Optional published aldington-david/mihomo tag; empty selects latest stable'
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: anytls-reality-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      build: ${{ steps.source.outputs.build }}
+      tag: ${{ steps.source.outputs.tag }}
+      version: ${{ steps.source.outputs.version }}
+      core_sha: ${{ steps.source.outputs.core_sha }}
+      core_tag: ${{ steps.source.outputs.core_tag }}
+      source_sha: ${{ steps.source.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check preparation logic
+        run: python3 .github/fork/prepare.py --self-test
+      - name: Prepare immutable source tag
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_TAG: ${{ inputs.upstream_tag }}
+          CORE_TAG: ${{ inputs.core_tag }}
+        run: python3 .github/fork/prepare.py --source "$RUNNER_TEMP/cmfa-source" --upstream-tag "$UPSTREAM_TAG" --core-tag "$CORE_TAG"
+      - name: Keep the scheduled synchronizer active
+        if: github.event_name == 'schedule'
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ "$(( $(date +%s) - $(git log -1 --format=%ct) ))" -gt 2592000 ]; then
+            git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit --allow-empty -m 'Keep stable-release synchronization active'
+            git push origin "HEAD:refs/heads/$DEFAULT_BRANCH"
+          fi
+
+  build:
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CORE_SHA: ${{ needs.prepare.outputs.core_sha }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      APP_VERSION: ${{ needs.prepare.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
+          fetch-depth: 0
+          submodules: recursive
+      - name: Verify pinned core
+        run: |
+          test "$(git -C core/src/foss/golang/clash rev-parse HEAD)" = "$CORE_SHA"
+          test -f core/src/foss/golang/clash/adapter/outbound/anytls_reality_test.go
+          grep -q 'RealityOpts' core/src/foss/golang/clash/adapter/outbound/anytls.go
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Set up upstream Android-compatible Go toolchain
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+        with:
+          go-download-base-url: 'https://github.com/MetaCubeX/go/releases/download/build'
+          go-version: '1.26'
+          cache-dependency-path: |
+            core/src/foss/golang/go.sum
+            core/src/foss/golang/clash/go.sum
+      - name: Apply upstream Android runtime patches
+        run: |
+          cd "$(go env GOROOT)"
+          for patch_file in "$GITHUB_WORKSPACE"/.github/patch/*.patch; do
+            patch --batch --forward -p 1 < "$patch_file"
+          done
+      - uses: android-actions/setup-android@v3
+      - name: Install pinned Android SDK and NDK
+        run: |
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
+      - name: Configure private release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+          names = ('ANDROID_KEYSTORE_BASE64', 'ANDROID_KEYSTORE_PASSWORD', 'ANDROID_KEY_ALIAS', 'ANDROID_KEY_PASSWORD')
+          if any(not os.environ.get(name) for name in names):
+              raise SystemExit('All four ANDROID signing secrets are required')
+          Path('release.keystore').write_bytes(base64.b64decode(os.environ[names[0]], validate=True))
+          Path('release.keystore').chmod(0o600)
+          def prop(value):
+              return value.replace('\\', '\\\\').replace('\n', '\\n').replace('\r', '\\r').replace('=', '\\=').replace(':', '\\:').replace(' ', '\\ ')
+          Path('signing.properties').write_text('\n'.join(
+              key + '=' + prop(os.environ[name]) for key, name in (
+                  ('keystore.password', names[1]), ('key.alias', names[2]), ('key.password', names[3])
+              )) + '\n')
+          Path('signing.properties').chmod(0o600)
+          PY
+      - name: Validate AnyTLS REALITY core configuration
+        working-directory: core/src/foss/golang/clash
+        run: go test -p 2 ./adapter/outbound -run TestAnyTLSReality -count=1 -timeout=120s
+      - name: Build signed universal APK
+        run: |
+          cp /etc/ssl/certs/ca-certificates.crt core/src/foss/golang/clash/component/ca/ca-certificates.crt
+          chmod +x gradlew
+          ./gradlew --no-daemon --max-workers=2 app:assembleMetaRelease
+      - name: Verify and stage only requested APK
+        run: |
+          mkdir dist
+          apk="app/build/outputs/apk/meta/release/cmfa-${APP_VERSION}-meta-universal-release.apk"
+          test -s "$apk"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" > apk-badging.txt
+          grep "^package: name='com.github.aldingtondavid.cmfa'" apk-badging.txt
+          python3 - "$apk" <<'PY'
+          import sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as apk:
+              names = set(apk.namelist())
+              for abi in ('arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'):
+                  assert f'lib/{abi}/libclash.so' in names, f'Missing native core: {abi}'
+          PY
+          cp "$apk" dist/
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          info = json.loads(Path('build-info.json').read_text())
+          info.update(source_sha=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                      run_url=f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+                      go_version=subprocess.check_output(['go', 'version'], text=True).strip())
+          Path('dist/build-info.json').write_text(json.dumps(info, indent=2) + '\n')
+          PY
+          (cd dist && sha256sum *.apk build-info.json > SHA256SUMS)
+      - name: Upload build evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmfa-${{ needs.prepare.outputs.tag }}
+          path: dist/*
+          if-no-files-found: error
+      - name: Publish complete release
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          info = json.loads(Path('dist/build-info.json').read_text())
+          Path('release-notes.md').write_text(
+              f"CMFA {info['upstream_tag']} with AnyTLS + REALITY.\n\n"
+              f"Upstream: https://github.com/{info['upstream_repository']}/commit/{info['upstream_sha']}\n\n"
+              f"Core: https://github.com/{info['core_repository']}/commit/{info['core_sha']} ({info['core_tag']})\n\n"
+              "Independent application ID `com.github.aldingtondavid.cmfa` and private signing key; installs alongside official CMFA.\n\n"
+              "Only the universal release APK is published. See build-info.json and SHA256SUMS for provenance.\n")
+          PY
+          if gh release view "$RELEASE_TAG" --json isDraft > release-state.json 2>/dev/null; then
+            python3 -c "import json; assert json.load(open('release-state.json'))['isDraft'], 'Refusing to replace a public release'"
+          else
+            gh release create "$RELEASE_TAG" --draft --verify-tag --title "CMFA ${APP_VERSION} · AnyTLS REALITY" --notes-file release-notes.md
+          fi
+          gh release upload "$RELEASE_TAG" dist/* --clobber
+          gh release edit "$RELEASE_TAG" --draft=false --latest --notes-file release-notes.md
+      - name: Remove signing material
+        if: always()
+        run: rm -f release.keystore signing.properties
