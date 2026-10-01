@@ -93,10 +93,9 @@ jobs:
           for patch_file in "$GITHUB_WORKSPACE"/.github/patch/*.patch; do
             patch --batch --forward -p 1 < "$patch_file"
           done
-      - uses: android-actions/setup-android@v3
       - name: Install pinned Android SDK and NDK
         run: |
-          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
       - name: Configure private release signing
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -129,11 +128,25 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon --max-workers=2 app:assembleMetaRelease
       - name: Verify and stage only requested APK
+        env:
+          EXPECTED_CERTIFICATE_SHA256: ${{ vars.ANDROID_CERTIFICATE_SHA256 }}
         run: |
           mkdir dist
           apk="app/build/outputs/apk/meta/release/cmfa-${APP_VERSION}-meta-universal-release.apk"
           test -s "$apk"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" > dist/SIGNING-CERTIFICATE.txt
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          expected = os.environ.get('EXPECTED_CERTIFICATE_SHA256', '').strip().lower()
+          if not re.fullmatch(r'[0-9a-f]{64}', expected):
+              raise SystemExit('ANDROID_CERTIFICATE_SHA256 must contain the expected signing certificate SHA-256')
+          actual = re.findall(r'^Signer #1 certificate SHA-256 digest: ([0-9a-fA-F]{64})$',
+                              Path('dist/SIGNING-CERTIFICATE.txt').read_text(), re.MULTILINE)
+          if len(actual) != 1 or actual[0].lower() != expected:
+              raise SystemExit('APK signing certificate differs from the repository-pinned identity')
+          print('APK signature matches the repository-pinned signing certificate')
+          PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" > apk-badging.txt
           grep "^package: name='com.github.aldingtondavid.cmfa'" apk-badging.txt
           python3 - "$apk" <<'PY'
@@ -153,7 +166,7 @@ jobs:
                       go_version=subprocess.check_output(['go', 'version'], text=True).strip())
           Path('dist/build-info.json').write_text(json.dumps(info, indent=2) + '\n')
           PY
-          (cd dist && sha256sum *.apk build-info.json > SHA256SUMS)
+          (cd dist && sha256sum *.apk build-info.json SIGNING-CERTIFICATE.txt > SHA256SUMS)
       - name: Upload build evidence
         uses: actions/upload-artifact@v4
         with:

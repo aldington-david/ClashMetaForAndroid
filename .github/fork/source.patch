@@ -1,5 +1,5 @@
 diff --git a/.gitmodules b/.gitmodules
-index 4bbdf53..aebd053 100644
+index 4bbdf538..aebd0538 100644
 --- a/.gitmodules
 +++ b/.gitmodules
 @@ -1,4 +1,4 @@
@@ -9,8 +9,31 @@ index 4bbdf53..aebd053 100644
 -	branch = Alpha
 +	url = https://github.com/aldington-david/mihomo
 +	branch = anytls-reality
+diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
+index 9900007e..879e869a 100644
+--- a/app/src/main/AndroidManifest.xml
++++ b/app/src/main/AndroidManifest.xml
+@@ -89,15 +89,15 @@
+                 <data android:host="install-config"/>
+             </intent-filter>
+             <intent-filter>
+-                <action android:name="com.github.metacubex.clash.meta.action.START_CLASH" />
++                <action android:name="${applicationId}.action.START_CLASH" />
+                 <category android:name="android.intent.category.DEFAULT" />
+             </intent-filter>
+             <intent-filter>
+-                <action android:name="com.github.metacubex.clash.meta.action.STOP_CLASH" />
++                <action android:name="${applicationId}.action.STOP_CLASH" />
+                 <category android:name="android.intent.category.DEFAULT" />
+             </intent-filter>
+             <intent-filter>
+-                <action android:name="com.github.metacubex.clash.meta.action.TOGGLE_CLASH" />
++                <action android:name="${applicationId}.action.TOGGLE_CLASH" />
+                 <category android:name="android.intent.category.DEFAULT" />
+             </intent-filter>
+         </activity>
 diff --git a/build.gradle.kts b/build.gradle.kts
-index a42f07d..1216108 100644
+index a42f07d5..12161089 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
 @@ -47,7 +47,7 @@ subprojects {
@@ -56,7 +79,7 @@ index a42f07d..1216108 100644
                      getDefaultProguardFile("proguard-android-optimize.txt"),
                      "proguard-rules.pro"
 diff --git a/core/src/main/cpp/CMakeLists.txt b/core/src/main/cpp/CMakeLists.txt
-index 82f2a82..ee712d0 100644
+index 82f2a82d..ee712d08 100644
 --- a/core/src/main/cpp/CMakeLists.txt
 +++ b/core/src/main/cpp/CMakeLists.txt
 @@ -16,7 +16,7 @@ message(STATUS "git hash= ${COMMIT_HASH}")
@@ -69,7 +92,7 @@ index 82f2a82..ee712d0 100644
    OUTPUT_VARIABLE CURRENT_BRANCH
  )
 diff --git a/design/src/main/res/values-ru/strings.xml b/design/src/main/res/values-ru/strings.xml
-index 4f680de..81c6ba8 100644
+index 4f680de2..81c6ba80 100644
 --- a/design/src/main/res/values-ru/strings.xml
 +++ b/design/src/main/res/values-ru/strings.xml
 @@ -215,8 +215,8 @@
@@ -84,7 +107,7 @@ index 4f680de..81c6ba8 100644
      <string name="tips_properties"><![CDATA[Принимается только <strong>конфиг Clash</strong> (включая <strong>Прокси</strong>/<strong>Правила</strong>)]]></string>
      <string name="tips_help"><![CDATA[Clash Meta для Android — <strong>бесплатен</strong> и мы <strong>НЕ</strong> предоставляем по нему поддержку]]></string>
 diff --git a/design/src/main/res/values/strings.xml b/design/src/main/res/values/strings.xml
-index 4e43d3f..e4e26af 100644
+index 4e43d3fd..e4e26af1 100644
 --- a/design/src/main/res/values/strings.xml
 +++ b/design/src/main/res/values/strings.xml
 @@ -235,8 +235,8 @@
