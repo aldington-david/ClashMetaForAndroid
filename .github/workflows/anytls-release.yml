@@ -192,6 +192,18 @@ jobs:
             gh release create "$RELEASE_TAG" --draft --verify-tag --title "CMFA ${APP_VERSION} · AnyTLS REALITY" --notes-file release-notes.md
           fi
           gh release upload "$RELEASE_TAG" dist/* --clobber
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > release-ready.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          release = json.loads(Path('release-ready.json').read_text())
+          expected = {f"cmfa-{os.environ['APP_VERSION']}-meta-universal-release.apk", 'SHA256SUMS', 'build-info.json', 'SIGNING-CERTIFICATE.txt'}
+          assets = release.get('assets', [])
+          if (release.get('draft') is not True or release.get('tag_name') != os.environ['RELEASE_TAG']
+                  or len(assets) != len(expected) or {asset['name'] for asset in assets} != expected
+                  or any(asset.get('state') != 'uploaded' or asset.get('size', 0) <= 0 for asset in assets)):
+              raise SystemExit('Release must remain a draft with exactly four complete assets; inspect it manually before publishing')
+          PY
           gh release edit "$RELEASE_TAG" --draft=false --latest --notes-file release-notes.md
       - name: Remove signing material
         if: always()
