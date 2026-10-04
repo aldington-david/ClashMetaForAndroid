@@ -45,14 +45,7 @@ index a42f07d5..12161089 100644
              }
  
              project.name.let { name ->
-@@ -125,12 +125,9 @@ subprojects {
- 
-                 buildConfigField("boolean", "PREMIUM", "Boolean.parseBoolean(\"false\")")
- 
--                resValue("string", "launch_name", "@string/launch_name_meta")
--                resValue("string", "application_name", "@string/application_name_meta")
-+                resValue("string", "launch_name", "CMFA AnyTLS REALITY")
-+                resValue("string", "application_name", "CMFA AnyTLS REALITY")
+@@ -130,7 +130,4 @@ subprojects {
  
 -                if (isApp && !removeSuffix) {
 -                    applicationIdSuffix = ".meta"
@@ -91,33 +84,3 @@ index 82f2a82d..ee712d08 100644
    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
    OUTPUT_VARIABLE CURRENT_BRANCH
  )
-diff --git a/design/src/main/res/values-ru/strings.xml b/design/src/main/res/values-ru/strings.xml
-index 4f680de2..81c6ba80 100644
---- a/design/src/main/res/values-ru/strings.xml
-+++ b/design/src/main/res/values-ru/strings.xml
-@@ -215,8 +215,8 @@
-     <string name="google_play">Google Play</string>
-     <string name="clash_meta_core">Ядро Clash Meta</string>
-     <string name="clash_wiki_url" translatable="false">https://github.com/Dreamacro/clash/wiki</string>
--    <string name="meta_github_url" translatable="false">https://github.com/MetaCubeX/ClashMetaForAndroid</string>
--    <string name="clash_meta_core_url" translatable="false">https://github.com/MetaCubeX/Clash.Meta</string>
-+    <string name="meta_github_url" translatable="false">https://github.com/aldington-david/ClashMetaForAndroid</string>
-+    <string name="clash_meta_core_url" translatable="false">https://github.com/aldington-david/mihomo</string>
- 
-     <string name="tips_properties"><![CDATA[Принимается только <strong>конфиг Clash</strong> (включая <strong>Прокси</strong>/<strong>Правила</strong>)]]></string>
-     <string name="tips_help"><![CDATA[Clash Meta для Android — <strong>бесплатен</strong> и мы <strong>НЕ</strong> предоставляем по нему поддержку]]></string>
-diff --git a/design/src/main/res/values/strings.xml b/design/src/main/res/values/strings.xml
-index 4e43d3fd..e4e26af1 100644
---- a/design/src/main/res/values/strings.xml
-+++ b/design/src/main/res/values/strings.xml
-@@ -235,8 +235,8 @@
-     <string name="google_play">Google Play</string>
-     <string name="clash_meta_core">Clash Meta Core</string>
-     <string name="clash_wiki_url" translatable="false">https://github.com/Dreamacro/clash/wiki</string>
--    <string name="meta_github_url" translatable="false">https://github.com/MetaCubeX/ClashMetaForAndroid</string>
--    <string name="clash_meta_core_url" translatable="false">https://github.com/MetaCubeX/Clash.Meta</string>
-+    <string name="meta_github_url" translatable="false">https://github.com/aldington-david/ClashMetaForAndroid</string>
-+    <string name="clash_meta_core_url" translatable="false">https://github.com/aldington-david/mihomo</string>
- 
-     <string name="tips_properties"><![CDATA[Accept Only <strong>Clash Config</strong>(including <strong>Proxy</strong>/<strong>Rules</strong>)]]></string>
-     <string name="tips_help"><![CDATA[Clash Meta for Android is a <strong>freeware</strong> and we do <strong>NOT</strong> provide any service for it]]></string>
