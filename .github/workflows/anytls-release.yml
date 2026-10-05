@@ -147,7 +147,8 @@ jobs:
               raise SystemExit('APK signing certificate differs from the repository-pinned identity')
           print('APK signature matches the repository-pinned signing certificate')
           PY
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" > apk-badging.txt
+          set -o pipefail
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | tee apk-badging.txt
           grep "^package: name='com.github.aldingtondavid.cmfa'" apk-badging.txt
           python3 - <<'PY'
           import json, re
@@ -157,8 +158,8 @@ jobs:
           launcher = re.search(r"^launchable-activity:.*\blabel='([^']*)'", badging, re.MULTILINE)
           version = re.search(r"^package:.*\bversionCode='(\d+)'", badging, re.MULTILINE)
           expected_code = json.loads(Path('build-info.json').read_text())['version_code']
-          if not labels or set(labels) != {'ICMFA'} or not launcher or launcher[1] != 'ICMFA':
-              raise SystemExit('APK application and launcher labels must be ICMFA')
+          if not labels or set(labels) != {'ICMFA'} or not launcher or launcher[1] not in ('', 'ICMFA'):
+              raise SystemExit(f'APK application labels must be ICMFA and launcher must use or inherit it: labels={labels!r}, launcher={launcher[1] if launcher else None!r}')
           if not version or int(version[1]) != expected_code or expected_code <= 1000000002:
               raise SystemExit('APK versionCode must match this build and upgrade the previous custom release')
           PY
