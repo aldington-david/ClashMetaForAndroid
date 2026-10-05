@@ -207,7 +207,8 @@ jobs:
             gh release create "$RELEASE_TAG" --draft --verify-tag --title "ICMFA ${APP_VERSION} · AnyTLS REALITY" --notes-file release-notes.md
           fi
           gh release upload "$RELEASE_TAG" dist/* --clobber
-          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > release-ready.json
+          release_api=$(gh release view "$RELEASE_TAG" --json apiUrl --jq .apiUrl)
+          gh api "$release_api" > release-ready.json
           python3 - <<'PY'
           import json, os
           from pathlib import Path
