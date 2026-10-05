@@ -149,6 +149,19 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" > apk-badging.txt
           grep "^package: name='com.github.aldingtondavid.cmfa'" apk-badging.txt
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          badging = Path('apk-badging.txt').read_text()
+          labels = re.findall(r"^application-label(?:-[^:]+)?:'([^']*)'$", badging, re.MULTILINE)
+          launcher = re.search(r"^launchable-activity:.*\blabel='([^']*)'", badging, re.MULTILINE)
+          version = re.search(r"^package:.*\bversionCode='(\d+)'", badging, re.MULTILINE)
+          expected_code = json.loads(Path('build-info.json').read_text())['version_code']
+          if not labels or set(labels) != {'ICMFA'} or not launcher or launcher[1] != 'ICMFA':
+              raise SystemExit('APK application and launcher labels must be ICMFA')
+          if not version or int(version[1]) != expected_code or expected_code <= 1000000002:
+              raise SystemExit('APK versionCode must match this build and upgrade the previous custom release')
+          PY
           python3 - "$apk" <<'PY'
           import sys, zipfile
           with zipfile.ZipFile(sys.argv[1]) as apk:
@@ -180,16 +193,17 @@ jobs:
           from pathlib import Path
           info = json.loads(Path('dist/build-info.json').read_text())
           Path('release-notes.md').write_text(
-              f"CMFA {info['upstream_tag']} with AnyTLS + REALITY.\n\n"
+              f"ICMFA {info['upstream_tag']} with AnyTLS + REALITY.\n\n"
               f"Upstream: https://github.com/{info['upstream_repository']}/commit/{info['upstream_sha']}\n\n"
               f"Core: https://github.com/{info['core_repository']}/commit/{info['core_sha']} ({info['core_tag']})\n\n"
               "Independent application ID `com.github.aldingtondavid.cmfa` and private signing key; installs alongside official CMFA.\n\n"
+              "Display name changed to ICMFA; package ID and signing identity are unchanged, so this upgrades the previous custom build.\n\n"
               "Only the universal release APK is published. See build-info.json and SHA256SUMS for provenance.\n")
           PY
           if gh release view "$RELEASE_TAG" --json isDraft > release-state.json 2>/dev/null; then
             python3 -c "import json; assert json.load(open('release-state.json'))['isDraft'], 'Refusing to replace a public release'"
           else
-            gh release create "$RELEASE_TAG" --draft --verify-tag --title "CMFA ${APP_VERSION} · AnyTLS REALITY" --notes-file release-notes.md
+            gh release create "$RELEASE_TAG" --draft --verify-tag --title "ICMFA ${APP_VERSION} · AnyTLS REALITY" --notes-file release-notes.md
           fi
           gh release upload "$RELEASE_TAG" dist/* --clobber
           gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > release-ready.json

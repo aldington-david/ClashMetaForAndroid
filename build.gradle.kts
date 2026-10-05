@@ -125,8 +125,8 @@ subprojects {
 
                 buildConfigField("boolean", "PREMIUM", "Boolean.parseBoolean(\"false\")")
 
-                resValue("string", "launch_name", "CMFA AnyTLS REALITY")
-                resValue("string", "application_name", "CMFA AnyTLS REALITY")
+                resValue("string", "launch_name", "ICMFA")
+                resValue("string", "application_name", "ICMFA")
 
             }
         }

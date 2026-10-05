@@ -1,7 +1,7 @@
 <!-- anytls-reality-fork -->
-# AnyTLS + REALITY 自有构建
+# ICMFA — AnyTLS + REALITY 自有构建
 
-使用独立包名和固定自有签名，可与官方 CMFA 并存；仅发布 universal APK。 这是 `aldington-david` 维护的独立版本，非上游官方发行版。
+应用显示名称为 **ICMFA**，保留此前自有版本的包名和签名，可覆盖升级此前的 CMFA AnyTLS REALITY，并与官方 CMFA 并存；仅发布 universal APK。这是 `aldington-david` 维护的独立版本，非上游官方发行版。
 
 [下载 Releases](https://github.com/aldington-david/ClashMetaForAndroid/releases) · [自动构建状态](https://github.com/aldington-david/ClashMetaForAndroid/actions) · [构建、签名与复跑说明](.github/fork/README.md)
 

@@ -12,11 +12,12 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from customize import APP_ID, customize, set_version, validate_source
+from customize import APP_ID, APP_NAME, customize, set_version, validate_source
 
 UPSTREAM = "MetaCubeX/ClashMetaForAndroid"
 CORE = "aldington-david/mihomo"
 CORE_PATH = "core/src/foss/golang/clash"
+FORK_REVISION = 2
 CONTROLLER = Path(__file__).resolve().parents[2]
 
 
@@ -94,7 +95,7 @@ def prepare(args):
     repository = os.environ["GITHUB_REPOSITORY"]
     upstream_tag = release(UPSTREAM, args.upstream_tag)
     core_tag = release(CORE, args.core_tag)
-    tag = f"{upstream_tag}-anytls-{core_tag}"
+    tag = f"{upstream_tag}-anytls-{core_tag}-r{FORK_REVISION}"
     existing_release = api(f"repos/{repository}/releases/tags/{tag}", missing_ok=True)
     if existing_release and not existing_release["draft"]:
         validate_public_release(existing_release, tag, upstream_tag)
@@ -109,6 +110,7 @@ def prepare(args):
         "upstream_repository": UPSTREAM, "upstream_tag": upstream_tag, "upstream_sha": upstream_sha,
         "core_repository": CORE, "core_tag": core_tag, "core_sha": core_sha,
         "release_tag": tag, "application_id": APP_ID, "source_fingerprint": source_fingerprint(),
+        "application_name": APP_NAME, "fork_revision": FORK_REVISION,
     }
     existing_tag = api(f"repos/{repository}/git/ref/tags/{tag}", missing_ok=True)
     if existing_tag:
@@ -150,6 +152,8 @@ def prepare(args):
         git("remote", "set-url", "origin", f"https://github.com/{repository}.git", cwd=destination)
         git("tag", tag, cwd=destination)
         git("push", "origin", f"refs/tags/{tag}", cwd=destination, authenticated=True)
+    if manifest["version_code"] <= 1_000_000_002:
+        raise ValueError("ICMFA versionCode must upgrade the previously published custom APK")
     output(build=True, tag=tag, version=upstream_tag[1:], core_sha=manifest["core_sha"],
            core_tag=manifest["core_tag"], source_sha=git("rev-parse", "HEAD", cwd=destination, capture=True))
 
@@ -169,9 +173,10 @@ def self_test():
     assert updated == 'versionName = "2.11.35"\nversionCode = 1000000005\n'
     for source, tag, code in [("", "v2.11.35", 1_000_000_005),
                               ('versionName = "x"\nversionCode = 1', "../../bad", 1_000_000_005),
+                              ('versionName = "x"\nversionCode = 1', "v2.11.35", 1_000_000_002),
                               ('versionName = "x"\nversionCode = 1', "v2.11.35", 2_100_000_000)]:
         rejects(lambda: set_version(source, tag, code))
-    tag, app_tag = "v2.11.35-anytls-v1.19.32", "v2.11.35"
+    tag, app_tag = f"v2.11.35-anytls-v1.19.32-r{FORK_REVISION}", "v2.11.35"
     item = {"tag_name": tag, "draft": False, "prerelease": False, "assets": [
         {"name": name, "size": 1, "state": "uploaded"} for name in (
             "cmfa-2.11.35-meta-universal-release.apk", "SHA256SUMS", "build-info.json", "SIGNING-CERTIFICATE.txt")
@@ -199,7 +204,7 @@ def self_test():
         gradle = source / "build.gradle.kts"
         original = gradle.read_text(encoding="utf-8")
         for field in ("launch_name", "application_name"):
-            original = original.replace(f'resValue("string", "{field}", "CMFA AnyTLS REALITY")',
+            original = original.replace(f'resValue("string", "{field}", "{APP_NAME}")',
                                         f'resValue("string", "{field}", "@string/{field}_meta")')
         gradle.write_text(original, encoding="utf-8")
         # Changed neighbouring translations and a newly added locale must not affect link rewriting.

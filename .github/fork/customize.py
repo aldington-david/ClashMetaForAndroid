@@ -4,7 +4,7 @@ import re
 import xml.etree.ElementTree as ET
 
 APP_ID = "com.github.aldingtondavid.cmfa"
-APP_NAME = "CMFA AnyTLS REALITY"
+APP_NAME = "ICMFA"
 LINKS = {
     "meta_github_url": "https://github.com/aldington-david/ClashMetaForAndroid",
     "clash_meta_core_url": "https://github.com/aldington-david/mihomo",
@@ -12,7 +12,7 @@ LINKS = {
 
 
 def set_version(source, tag, code):
-    if not re.fullmatch(r"v\d+\.\d+\.\d+", tag) or not 1_000_000_000 < code < 2_100_000_000:
+    if not re.fullmatch(r"v\d+\.\d+\.\d+", tag) or not 1_000_000_002 < code < 2_100_000_000:
         raise ValueError("Invalid Android release version")
     source, names = re.subn(r'versionName = "[^"]+"', f'versionName = "{tag[1:]}"', source)
     source, codes = re.subn(r"versionCode = \d+", f"versionCode = {code}", source)
