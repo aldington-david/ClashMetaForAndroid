@@ -1,0 +1,15 @@
+{
+  "upstream_repository": "MetaCubeX/ClashMetaForAndroid",
+  "upstream_tag": "v2.11.36",
+  "upstream_sha": "043a6072225405b285a73e3d7b7e53431ccfc04c",
+  "core_repository": "aldington-david/mihomo",
+  "core_tag": "v1.19.33",
+  "core_sha": "37ee1861ed0d07a390f58bd3326335303b71d1ea",
+  "release_tag": "v2.11.36-anytls-v1.19.33-r2",
+  "application_id": "com.github.aldingtondavid.cmfa",
+  "source_fingerprint": "280e50c6df06831ef32f1bfd83be7dd330cd797429220e89e2d0130a37d2109a",
+  "application_name": "ICMFA",
+  "fork_revision": 2,
+  "version_code": 1000000107,
+  "controller_sha": "6e44d4f3ce9c127e4f1188fa3f9e8a2b9d284316"
+}
