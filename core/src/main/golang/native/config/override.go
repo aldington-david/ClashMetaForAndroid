@@ -14,7 +14,7 @@ const (
 	OverrideSlotSession
 )
 
-const defaultPersistOverride = `{}`
+const defaultPersistOverride = `{"unified-delay":true,"tcp-concurrent":true}`
 const defaultSessionOverride = `{}`
 
 var sessionOverride = defaultSessionOverride
