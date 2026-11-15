@@ -1,0 +1,86 @@
+diff --git a/.gitmodules b/.gitmodules
+index 4bbdf538..aebd0538 100644
+--- a/.gitmodules
++++ b/.gitmodules
+@@ -1,4 +1,4 @@
+ [submodule "clash-foss"]
+ 	path = core/src/foss/golang/clash
+-	url = https://github.com/MetaCubeX/mihomo
+-	branch = Alpha
++	url = https://github.com/aldington-david/mihomo
++	branch = anytls-reality
+diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
+index 9900007e..879e869a 100644
+--- a/app/src/main/AndroidManifest.xml
++++ b/app/src/main/AndroidManifest.xml
+@@ -89,15 +89,15 @@
+                 <data android:host="install-config"/>
+             </intent-filter>
+             <intent-filter>
+-                <action android:name="com.github.metacubex.clash.meta.action.START_CLASH" />
++                <action android:name="${applicationId}.action.START_CLASH" />
+                 <category android:name="android.intent.category.DEFAULT" />
+             </intent-filter>
+             <intent-filter>
+-                <action android:name="com.github.metacubex.clash.meta.action.STOP_CLASH" />
++                <action android:name="${applicationId}.action.STOP_CLASH" />
+                 <category android:name="android.intent.category.DEFAULT" />
+             </intent-filter>
+             <intent-filter>
+-                <action android:name="com.github.metacubex.clash.meta.action.TOGGLE_CLASH" />
++                <action android:name="${applicationId}.action.TOGGLE_CLASH" />
+                 <category android:name="android.intent.category.DEFAULT" />
+             </intent-filter>
+         </activity>
+diff --git a/build.gradle.kts b/build.gradle.kts
+index a42f07d5..12161089 100644
+--- a/build.gradle.kts
++++ b/build.gradle.kts
+@@ -47,7 +47,7 @@ subprojects {
+         defaultConfig {
+             if (isApp) {
+                 val customApplicationId = queryConfigProperty("custom.application.id") as? String?
+-                applicationId = customApplicationId.takeIf { it?.isNotBlank() == true } ?: "com.github.metacubex.clash"
++                applicationId = customApplicationId.takeIf { it?.isNotBlank() == true } ?: "com.github.aldingtondavid.cmfa"
+             }
+ 
+             project.name.let { name ->
+@@ -130,7 +130,4 @@ subprojects {
+ 
+-                if (isApp && !removeSuffix) {
+-                    applicationIdSuffix = ".meta"
+-                }
+             }
+         }
+ 
+@@ -152,6 +149,7 @@ subprojects {
+                     }
+ 
+                     storeFile = rootProject.file("release.keystore")
++                    storeType = "PKCS12"
+                     storePassword = prop.getProperty("keystore.password")!!
+                     keyAlias = prop.getProperty("key.alias")!!
+                     keyPassword = prop.getProperty("key.password")!!
+@@ -163,7 +161,8 @@ subprojects {
+             named("release") {
+                 isMinifyEnabled = isApp
+                 isShrinkResources = isApp
+-                signingConfig = signingConfigs.findByName("release") ?: signingConfigs["debug"]
++                signingConfig = signingConfigs.findByName("release")
++                    ?: error("Release signing.properties is required; debug signing is forbidden")
+                 proguardFiles(
+                     getDefaultProguardFile("proguard-android-optimize.txt"),
+                     "proguard-rules.pro"
+diff --git a/core/src/main/cpp/CMakeLists.txt b/core/src/main/cpp/CMakeLists.txt
+index 82f2a82d..ee712d08 100644
+--- a/core/src/main/cpp/CMakeLists.txt
++++ b/core/src/main/cpp/CMakeLists.txt
+@@ -16,7 +16,7 @@ message(STATUS "git hash= ${COMMIT_HASH}")
+ 
+ # 获取分支名称
+ execute_process(
+-  COMMAND git submodule foreach git branch -r --contains ${COMMIT_HASH}
++  COMMAND git submodule foreach git describe --tags --always
+   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
+   OUTPUT_VARIABLE CURRENT_BRANCH
+ )

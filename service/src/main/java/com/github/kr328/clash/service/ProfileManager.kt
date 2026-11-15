@@ -40,7 +40,11 @@ class ProfileManager(private val context: Context) : IProfileManager,
             name = name,
             type = type,
             source = source,
-            interval = 0,
+            interval = if (type != Profile.Type.File && (
+                (type == Profile.Type.Url && source.isEmpty()) ||
+                    source.startsWith("http://", ignoreCase = true) ||
+                    source.startsWith("https://", ignoreCase = true)
+                )) java.util.concurrent.TimeUnit.HOURS.toMillis(6) else 0L,
             upload = 0,
             total = 0,
             download = 0,

@@ -43,17 +43,17 @@ class ServiceStore(context: Context) {
 
     var systemProxy by store.boolean(
         key = "system_proxy",
-        defaultValue = true
+        defaultValue = false
     )
 
     var allowBypass by store.boolean(
         key = "allow_bypass",
-        defaultValue = true
+        defaultValue = false
     )
 
     var allowIpv6 by store.boolean(
         key = "allow_ipv6",
-        defaultValue = false
+        defaultValue = true
     )
 
     var tunStackMode by store.string(
