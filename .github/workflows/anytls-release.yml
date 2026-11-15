@@ -132,7 +132,8 @@ jobs:
           validate_default_settings(Path('.'))
           print('Five approved defaults verified; Session and kernel IPv6 unchanged')
           PY
-          go -C core/src/main/golang test -p 2 ./native/config -run TestForkDefaultSettings -count=1 -timeout=120s
+          # Run the real override processors without the Android-only app DNS bridge.
+          go -C core/src/main/golang/native/config test -p 2 override.go process.go defaults.go provider.go fork_defaults_test.go -run TestForkDefaultSettings -count=1 -timeout=120s
       - name: Build signed universal APK
         run: |
           cp /etc/ssl/certs/ca-certificates.crt core/src/foss/golang/clash/component/ca/ca-certificates.crt
