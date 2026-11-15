@@ -1,5 +1,6 @@
 """Small, checked source rewrites that do not depend on neighbouring translations."""
 import configparser
+import json
 import re
 import xml.etree.ElementTree as ET
 
@@ -9,6 +10,22 @@ LINKS = {
     "meta_github_url": "https://github.com/aldington-david/ClashMetaForAndroid",
     "clash_meta_core_url": "https://github.com/aldington-david/mihomo",
 }
+
+
+def validate_default_settings(source):
+    native = (source / "core/src/main/golang/native/config/override.go").read_text(encoding="utf-8")
+    for name, expected in (("defaultPersistOverride", {"unified-delay": True, "tcp-concurrent": True}),
+                           ("defaultSessionOverride", {})):
+        matches = re.findall(r"(?m)^const " + name + r" = `([^`]*)`$", native)
+        if len(matches) != 1 or json.loads(matches[0]) != expected:
+            raise ValueError(f"Unexpected defaults for {name}")
+    store = (source / "service/src/main/java/com/github/kr328/clash/service/store/ServiceStore.kt").read_text(encoding="utf-8")
+    for field, key, expected in (("systemProxy", "system_proxy", "false"),
+                                 ("allowBypass", "allow_bypass", "false"),
+                                 ("allowIpv6", "allow_ipv6", "true")):
+        pattern = rf'\bvar {field}\b[^\n]*store\.boolean\(\s*key = "{key}",\s*defaultValue = (true|false)\s*\)'
+        if re.findall(pattern, store) != [expected]:
+            raise ValueError(f"Unexpected VPN default for {field}")
 
 
 def set_version(source, tag, code):

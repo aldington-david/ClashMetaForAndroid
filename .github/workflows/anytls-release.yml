@@ -122,6 +122,17 @@ jobs:
       - name: Validate AnyTLS REALITY core configuration
         working-directory: core/src/foss/golang/clash
         run: go test -p 2 ./adapter/outbound -run TestAnyTLSReality -count=1 -timeout=120s
+      - name: Verify approved defaults and retained user choices
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, '.github/fork')
+          from customize import validate_default_settings
+          validate_default_settings(Path('.'))
+          print('Five approved defaults verified; Session and kernel IPv6 unchanged')
+          PY
+          go -C core/src/main/golang test -p 2 ./native/config -run TestForkDefaultSettings -count=1 -timeout=120s
       - name: Build signed universal APK
         run: |
           cp /etc/ssl/certs/ca-certificates.crt core/src/foss/golang/clash/component/ca/ca-certificates.crt

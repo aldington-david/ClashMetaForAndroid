@@ -4,13 +4,34 @@ This independently signed build uses `aldington-david/mihomo`, including its Any
 
 ## Releases
 
-The default `anytls-reality` branch is the build controller. Every hour at minute 37, Actions checks the latest **published stable release** from `MetaCubeX/ClashMetaForAndroid` and `aldington-david/mihomo`. A new app or core release creates an immutable source tag such as `v2.11.35-anytls-v1.19.32-r2`. Fork revision 2 publishes the ICMFA display name without moving or replacing the previous public tag. Manual dispatch accepts published stable upstream and core tags as optional inputs. CMFA has no in-app release-tag parser or application updater affected by the revision suffix.
+The default `anytls-reality` branch is the build controller. Every hour at minute 37, Actions checks the latest **published stable release** from `MetaCubeX/ClashMetaForAndroid` and `aldington-david/mihomo`. A new app or core release creates an immutable source tag such as `v2.11.37-anytls-v1.19.34-r3`. Fork revision 3 adds the approved initial Meta and VPN settings while preserving the previous public releases. Manual dispatch accepts published stable upstream and core tags as optional inputs. CMFA has no in-app release-tag parser or application updater affected by the revision suffix.
 
 The source tag contains the exact upstream app commit, the strictly applied structural `source.patch`, checked display-name and resource-link rewrites in `customize.py`, and the custom core's exact Git submodule commit. Resource links are selected by their XML resource names across all locales, without rewriting unrelated XML or depending on neighbouring translations. Package identity, signing settings, external-control actions, and the local core module paths are checked before creating a source tag.
 
-`build-info.json` records source commits, the controller commit, Android version code and a fingerprint of `source.patch` plus `customize.py`. An unpublished failed tag can be retried only when its source provenance and this fingerprint still match; documentation and workflow-only edits do not change that fingerprint. A mismatched failed tag stops for review and is never rewritten automatically. Existing public releases do not need the new fingerprint, but their four required assets must still be present, uploaded and nonempty before synchronization skips them. Public releases appear only after compilation, signature verification and four-ABI verification pass; the publishing step refuses to overwrite an already-public release. Structural patch or native Go API conflicts continue to stop the build for review.
+`build-info.json` records source commits, the controller commit, Android version code and a fingerprint of `source.patch`, `default-settings.patch` and `customize.py`. An unpublished failed tag can be retried only when its source provenance and this fingerprint still match; documentation and workflow-only edits do not change that fingerprint. A mismatched failed tag stops for review and is never rewritten automatically. Existing public releases do not need the new fingerprint, but their four required assets must still be present, uploaded and nonempty before synchronization skips them. Public releases appear only after compilation, signature verification and four-ABI verification pass; the publishing step refuses to overwrite an already-public release. Structural patch or native Go API conflicts continue to stop the build for review.
 
 Only `cmfa-X.Y.Z-meta-universal-release.apk` is published, plus `SHA256SUMS`, `build-info.json` and `SIGNING-CERTIFICATE.txt`; renaming the application does not change the requested APK filename. The package contains arm64-v8a, armeabi-v7a, x86 and x86_64 cores built from the same custom source. Android `versionCode` is `1,000,000,000 + github.run_number`, fixed when a new source tag is created, and must exceed the previous custom build's `1,000,000,002`. The packaged application and launcher labels, version code, package ID and signing certificate are verified before publishing. Keep this workflow and its signing key when continuing the release series.
+
+## Initial settings
+
+Revision 3 changes only five approved defaults. The Meta features Unified Delay
+and TCP Concurrent default to on when the persisted settings file is absent.
+The VPN settings System Proxy and Allow Apps to Bypass VPN default to off, while
+Allow IPv6 defaults to on. The System Proxy control remains available only on
+Android 10 and later.
+
+The Override / General page, kernel IPv6, session overrides and shared nullable
+configuration model keep their existing behavior. Saved overrides are read
+unchanged: an empty object or null fields still inherit the profile, and explicit
+false/true choices remain in effect. Stored VPN preferences retain their values;
+only missing preference keys use the new defaults. Resetting global overrides
+restores the two new Meta defaults through the existing reset behavior.
+
+The strict `default-settings.patch` is applied before source tagging. Preparation
+checks all five values and the empty session override. Release CI runs the actual
+native configuration read/apply tests for absent, empty, null, false and true
+settings, including preservation of the profile's kernel IPv6, before building
+the signed four-ABI APK.
 
 ## Signing and build
 

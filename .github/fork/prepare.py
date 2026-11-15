@@ -12,12 +12,12 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from customize import APP_ID, APP_NAME, customize, set_version, validate_source
+from customize import APP_ID, APP_NAME, customize, set_version, validate_source, validate_default_settings
 
 UPSTREAM = "MetaCubeX/ClashMetaForAndroid"
 CORE = "aldington-david/mihomo"
 CORE_PATH = "core/src/foss/golang/clash"
-FORK_REVISION = 2
+FORK_REVISION = 3
 CONTROLLER = Path(__file__).resolve().parents[2]
 
 
@@ -66,7 +66,7 @@ def commit(repository, tag):
 
 def source_fingerprint(controller=CONTROLLER):
     digest = hashlib.sha256()
-    for name in ("source.patch", "customize.py"):
+    for name in ("source.patch", "default-settings.patch", "customize.py"):
         digest.update(name.encode() + b"\0" + (controller / ".github/fork" / name).read_bytes())
     return digest.hexdigest()
 
@@ -120,6 +120,7 @@ def prepare(args):
         if source_fingerprint(destination) != expected["source_fingerprint"]:
             raise ValueError("Unpublished tag source-rewrite files do not match its recorded fingerprint")
         validate_source(destination)
+        validate_default_settings(destination)
         if git("ls-files", "--stage", CORE_PATH, cwd=destination, capture=True).split()[:2] != ["160000", core_sha]:
             raise ValueError("Core gitlink does not match the pinned core commit")
     else:
@@ -128,7 +129,10 @@ def prepare(args):
             raise ValueError("Upstream release tag moved during checkout")
         git("apply", "--check", str(CONTROLLER / ".github/fork/source.patch"), cwd=destination)
         git("apply", str(CONTROLLER / ".github/fork/source.patch"), cwd=destination)
+        git("apply", "--check", str(CONTROLLER / ".github/fork/default-settings.patch"), cwd=destination)
+        git("apply", str(CONTROLLER / ".github/fork/default-settings.patch"), cwd=destination)
         customize(destination)
+        validate_default_settings(destination)
         # Upstream signing material and workflows must never enter our release build.
         (destination / "release.keystore").unlink(missing_ok=True)
         shutil.rmtree(destination / ".github/workflows")
@@ -197,7 +201,8 @@ def self_test():
     with tempfile.TemporaryDirectory(prefix="cmfa-self-test-", dir=CONTROLLER) as directory:
         source = Path(directory).resolve()
         assert source.parent == CONTROLLER
-        for name in (".gitmodules", "build.gradle.kts", "app/src/main/AndroidManifest.xml", "core/src/foss/golang/go.mod", "core/src/main/golang/go.mod"):
+        for name in (".gitmodules", "build.gradle.kts", "app/src/main/AndroidManifest.xml", "core/src/foss/golang/go.mod", "core/src/main/golang/go.mod",
+                     "core/src/main/golang/native/config/override.go", "service/src/main/java/com/github/kr328/clash/service/store/ServiceStore.kt"):
             target = source / name
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((CONTROLLER / name).read_bytes())
@@ -215,6 +220,24 @@ def self_test():
             path.write_text(xml, encoding="utf-8")
         customize(source)
         validate_source(source)
+        rejects(lambda: validate_default_settings(source))
+        git("init", "--quiet", str(source))
+        git("apply", "--check", str(CONTROLLER / ".github/fork/default-settings.patch"), cwd=source)
+        git("apply", str(CONTROLLER / ".github/fork/default-settings.patch"), cwd=source)
+        validate_default_settings(source)
+        native = source / "core/src/main/golang/native/config/override.go"
+        saved = native.read_text(encoding="utf-8")
+        native.write_text(saved.replace('"tcp-concurrent":true}', '"tcp-concurrent":true,"ipv6":true}'), encoding="utf-8")
+        rejects(lambda: validate_default_settings(source))
+        native.write_text(saved, encoding="utf-8")
+        store = source / "service/src/main/java/com/github/kr328/clash/service/store/ServiceStore.kt"
+        saved = store.read_text(encoding="utf-8")
+        for key, old, new in (("system_proxy", "false", "true"), ("allow_bypass", "false", "true"), ("allow_ipv6", "true", "false")):
+            before = f'key = "{key}",\n        defaultValue = {old}'
+            assert saved.count(before) == 1
+            store.write_text(saved.replace(before, f'key = "{key}",\n        defaultValue = {new}'), encoding="utf-8")
+            rejects(lambda: validate_default_settings(source))
+        store.write_text(saved, encoding="utf-8")
         for path in (source / "design/src/main/res").glob("values*/*.xml"):
             assert path.read_text(encoding="utf-8") == xml.replace("MetaCubeX/ClashMetaForAndroid", "aldington-david/ClashMetaForAndroid").replace("MetaCubeX/Clash.Meta", "aldington-david/mihomo")
         for name, before, after in (
@@ -238,7 +261,7 @@ def self_test():
         duplicate = source / "design/src/main/res/values/links.xml"
         duplicate.write_text(xml.replace("</resources>", '<string name="meta_github_url">duplicate</string></resources>'), encoding="utf-8")
         rejects(lambda: customize(source))
-        for name in ("source.patch", "customize.py"):
+        for name in ("source.patch", "default-settings.patch", "customize.py"):
             path = source / ".github/fork" / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes((CONTROLLER / ".github/fork" / name).read_bytes())
