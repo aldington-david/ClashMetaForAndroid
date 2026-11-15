@@ -103,3 +103,45 @@ new file mode 100644
 +		}
 +	}
 +}
+diff --git a/app/src/main/java/com/github/kr328/clash/ExternalControlActivity.kt b/app/src/main/java/com/github/kr328/clash/ExternalControlActivity.kt
+index e31d3d1..1aab797 100644
+--- a/app/src/main/java/com/github/kr328/clash/ExternalControlActivity.kt
++++ b/app/src/main/java/com/github/kr328/clash/ExternalControlActivity.kt
+@@ -41,12 +41,14 @@ class ExternalControlActivity : Activity(), CoroutineScope by MainScope() {
+                         }
+                         val name = uri.getQueryParameter("name") ?: getString(R.string.new_profile)
+
+-                        val parsedInterval = uri.getQueryParameter("update-interval")?.toLongOrNull() ?: 0L
+-                        val updateInterval = if (parsedInterval > 0) parsedInterval.coerceAtLeast(15L) else 0L
+-                        val intervalMs = java.util.concurrent.TimeUnit.MINUTES.toMillis(updateInterval)
+-
+-                        create(type, name).also {
+-                            patch(it, name, url, intervalMs, null)
++                        val explicitInterval = uri.getQueryParameter("update-interval")
++                        create(type, name, url).also {
++                            if (explicitInterval != null) {
++                                val parsedInterval = explicitInterval.toLongOrNull() ?: 0L
++                                val updateInterval = if (parsedInterval > 0) parsedInterval.coerceAtLeast(15L) else 0L
++                                val intervalMs = java.util.concurrent.TimeUnit.MINUTES.toMillis(updateInterval)
++                                patch(it, name, url, intervalMs, null)
++                            }
+                         }
+                     }
+                     startActivity(PropertiesActivity::class.intent.setUUID(uuid))
+diff --git a/service/src/main/java/com/github/kr328/clash/service/ProfileManager.kt b/service/src/main/java/com/github/kr328/clash/service/ProfileManager.kt
+index e33b591..f43613c 100644
+--- a/service/src/main/java/com/github/kr328/clash/service/ProfileManager.kt
++++ b/service/src/main/java/com/github/kr328/clash/service/ProfileManager.kt
+@@ -40,7 +40,11 @@ class ProfileManager(private val context: Context) : IProfileManager,
+             name = name,
+             type = type,
+             source = source,
+-            interval = 0,
++            interval = if (type != Profile.Type.File && (
++                (type == Profile.Type.Url && source.isEmpty()) ||
++                    source.startsWith("http://", ignoreCase = true) ||
++                    source.startsWith("https://", ignoreCase = true)
++                )) java.util.concurrent.TimeUnit.HOURS.toMillis(6) else 0L,
+             upload = 0,
+             total = 0,
+             download = 0,

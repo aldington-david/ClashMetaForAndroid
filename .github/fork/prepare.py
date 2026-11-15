@@ -13,11 +13,12 @@ import urllib.parse
 import urllib.request
 
 from customize import APP_ID, APP_NAME, customize, set_version, validate_source, validate_default_settings
+from check_subscription_defaults import extract as subscription_source
 
 UPSTREAM = "MetaCubeX/ClashMetaForAndroid"
 CORE = "aldington-david/mihomo"
 CORE_PATH = "core/src/foss/golang/clash"
-FORK_REVISION = 3
+FORK_REVISION = 4
 CONTROLLER = Path(__file__).resolve().parents[2]
 
 
@@ -66,7 +67,7 @@ def commit(repository, tag):
 
 def source_fingerprint(controller=CONTROLLER):
     digest = hashlib.sha256()
-    for name in ("source.patch", "default-settings.patch", "customize.py"):
+    for name in ("source.patch", "default-settings.patch", "customize.py", "check_subscription_defaults.py"):
         digest.update(name.encode() + b"\0" + (controller / ".github/fork" / name).read_bytes())
     return digest.hexdigest()
 
@@ -202,7 +203,8 @@ def self_test():
         source = Path(directory).resolve()
         assert source.parent == CONTROLLER
         for name in (".gitmodules", "build.gradle.kts", "app/src/main/AndroidManifest.xml", "core/src/foss/golang/go.mod", "core/src/main/golang/go.mod",
-                     "core/src/main/golang/native/config/override.go", "service/src/main/java/com/github/kr328/clash/service/store/ServiceStore.kt"):
+                     "core/src/main/golang/native/config/override.go", "service/src/main/java/com/github/kr328/clash/service/store/ServiceStore.kt",
+                     "service/src/main/java/com/github/kr328/clash/service/ProfileManager.kt", "app/src/main/java/com/github/kr328/clash/ExternalControlActivity.kt"):
             target = source / name
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((CONTROLLER / name).read_bytes())
@@ -225,6 +227,7 @@ def self_test():
         git("apply", "--check", str(CONTROLLER / ".github/fork/default-settings.patch"), cwd=source)
         git("apply", str(CONTROLLER / ".github/fork/default-settings.patch"), cwd=source)
         validate_default_settings(source)
+        subscription_source(source)
         native = source / "core/src/main/golang/native/config/override.go"
         saved = native.read_text(encoding="utf-8")
         native.write_text(saved.replace('"tcp-concurrent":true}', '"tcp-concurrent":true,"ipv6":true}'), encoding="utf-8")
@@ -261,7 +264,7 @@ def self_test():
         duplicate = source / "design/src/main/res/values/links.xml"
         duplicate.write_text(xml.replace("</resources>", '<string name="meta_github_url">duplicate</string></resources>'), encoding="utf-8")
         rejects(lambda: customize(source))
-        for name in ("source.patch", "default-settings.patch", "customize.py"):
+        for name in ("source.patch", "default-settings.patch", "customize.py", "check_subscription_defaults.py"):
             path = source / ".github/fork" / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes((CONTROLLER / ".github/fork" / name).read_bytes())
